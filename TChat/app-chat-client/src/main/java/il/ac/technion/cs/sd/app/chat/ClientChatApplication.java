@@ -10,6 +10,10 @@ import java.util.function.Consumer;
  */
 public class ClientChatApplication {
 
+	private Client client;
+	private final String serverAddress;
+	private final String username;	
+	
 	/**
 	 * Creates a new application, tied to a single user
 	 * 
@@ -19,7 +23,8 @@ public class ClientChatApplication {
 	 *            using this object
 	 */
 	public ClientChatApplication(String serverAddress, String username) {
-		throw new UnsupportedOperationException("Not implemented");
+		this.serverAddress = serverAddress;
+		this.username = username;
 	}
 
 	/**
@@ -34,7 +39,7 @@ public class ClientChatApplication {
 	 */
 	public void login(Consumer<ChatMessage> chatMessageConsumer,
 			Consumer<RoomAnnouncement> announcementConsumer) {
-		throw new UnsupportedOperationException("Not implemented");
+		client = new Client(username, serverAddress, chatMessageConsumer, announcementConsumer);
 	}
 
 	/**
@@ -44,7 +49,10 @@ public class ClientChatApplication {
 	 * @throws AlreadyInRoomException If the client isn't currently in the room
 	 */
 	public void joinRoom(String room) throws AlreadyInRoomException {
-		throw new UnsupportedOperationException("Not implemented");
+		if (client.isInRoom(room)) 
+			throw new AlreadyInRoomException();
+		
+		client.send(new JoinRoomRequest(username, room));
 	}
 
 	/**
@@ -53,7 +61,10 @@ public class ClientChatApplication {
 	 * @throws NotInRoomException If the client isn't currently in the room
 	 */
 	public void leaveRoom(String room) throws NotInRoomException {
-		throw new UnsupportedOperationException("Not implemented");
+		if (!client.isInRoom(room)) 
+			throw new NotInRoomException();
+		
+		client.send(new LeaveRoomRequest(username, room));
 	}
 
 	/**

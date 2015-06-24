@@ -43,7 +43,7 @@ public class Client implements IMessageHandler {
 	 * The rooms in which the client is currently logged in
 	 */
 	public final List<String> myRooms;
-	
+
 	/**
 	 * The ClientCommunicator with which the client and the server speak
 	 */
@@ -53,7 +53,7 @@ public class Client implements IMessageHandler {
 	 * A handler that needs to be run when a "regular" (common) instant message
 	 * is sent
 	 */
-	private final Consumer<InstantMessage> messageConsumer;
+	private final Consumer<ChatMessage> messageConsumer;
 
 	/**
 	 * A function that defines how the client responds to friend requests from
@@ -86,6 +86,8 @@ public class Client implements IMessageHandler {
 	 */
 	private BlockingQueue<LogoutReplyMessage> logoutQueue;
 
+	private Consumer<RoomAnnouncement> announcementConsumer;
+
 	/**
 	 * Creates a new client, starts the connection with the server, and
 	 * retrieves all of the unread messages that the client got when he was not
@@ -95,26 +97,20 @@ public class Client implements IMessageHandler {
 	 *            the client's address
 	 * @param serverAddress
 	 *            the server's address
-	 * @param messageConsumer
-	 *            The consumer to handle all incoming messages
-	 * @param friendshipRequestHandler
-	 *            The callback to handle all incoming friend requests. It
-	 *            accepts the user requesting the friendship as input and
-	 *            outputs the reply.
-	 * @param friendshipReplyConsumer
-	 *            The consumer to handle all friend requests replies (replies to
-	 *            outgoing friends requests). The consumer accepts the user
-	 *            requested and his reply.
+	 * @param chatMessageConsumer
+	 *            The consumer of chat messages (See
+	 *            {@link ClientChatApplication#sendMessage(String, String)})
+	 * @param announcementConsumer
+	 *            The consumer of room announcements (See
+	 *            {@link RoomAnnouncement.Announcement})
 	 */
-	public Client(String myAddress, String serverAddress,
-			Consumer<InstantMessage> messageConsumer,
-			Function<String, Boolean> friendshipRequestHandler,
-			BiConsumer<String, Boolean> friendshipReplyConsumer) {
+	public Client(String username, String serverAddress,
+			Consumer<ChatMessage> messageConsumer,
+			Consumer<RoomAnnouncement> announcementConsumer) {
 		this.myAddress = myAddress;
 		this.serverAddress = serverAddress;
 		this.messageConsumer = messageConsumer;
-		this.friendshipRequestHandler = friendshipRequestHandler;
-		this.friendshipReplyConsumer = friendshipReplyConsumer;
+		this.announcementConsumer = announcementConsumer;
 
 		this.unreadMessagesQueue = new LinkedBlockingDeque<>();
 		this.isOnlineQueue = new LinkedBlockingDeque<>();
@@ -245,6 +241,10 @@ public class Client implements IMessageHandler {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
+	}
+
+	public boolean isInRoom(String room) {
+		return myRooms.contains(room);
 	}
 
 }
