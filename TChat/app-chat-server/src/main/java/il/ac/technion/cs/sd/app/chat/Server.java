@@ -1,5 +1,16 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
+import il.ac.technion.cs.sd.app.chat.OurChatMessage;
+import il.ac.technion.cs.sd.app.chat.FriendReplyMessage;
+import il.ac.technion.cs.sd.app.chat.FriendRequestMessage;
+import il.ac.technion.cs.sd.app.chat.IMessage;
+import il.ac.technion.cs.sd.app.chat.IMessageHandler;
+import il.ac.technion.cs.sd.app.chat.LoginReplyMessage;
+import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
+import il.ac.technion.cs.sd.app.chat.LogoutReplyMessage;
+import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
+import il.ac.technion.cs.sd.app.chat.OnlineCheckReplyMessage;
+import il.ac.technion.cs.sd.app.chat.OnlineCheckRequestMessage;
 import il.ac.technion.cs.sd.lib.server.communication.ServerCommunicator;
 
 import java.util.HashMap;
@@ -17,6 +28,8 @@ public class Server implements IMessageHandler {
 	 * Stores all of the data about the clients in a clientName->clientData map
 	 */
 	private Map<String, ClientData> clients;
+	
+	private Map<String, Room> rooms;
 
 	/**
 	 * The ServerCommunicator with which the server speaks with the clients
@@ -45,6 +58,27 @@ public class Server implements IMessageHandler {
 		communicator.stop();
 	}
 
+	public void start() {
+		communicator = new ServerCommunicator(myAddress,
+				new Consumer<Object>() {
+			
+			@Override
+			public void accept(Object o) {
+				((IMessage) o).handle(Server.this);
+			}
+			
+		});
+		
+	}
+
+	public void sendToRoom(String from, String room, IMessage message) {
+		for (String to : rooms.get(room).getClients()) {
+			if (!to.equals(from)) {
+				send(to, message);
+			}
+		}
+	}
+	
 	/**
 	 * Sends a message to a client.
 	 * 
@@ -77,6 +111,8 @@ public class Server implements IMessageHandler {
 		}
 	}
 
+	// ***************************************************************
+	
 	@Override
 	public void handle(FriendReplyMessage message) {
 		clients.get(message.from).addFriend(message.to);
@@ -117,7 +153,7 @@ public class Server implements IMessageHandler {
 	}
 
 	@Override
-	public void handle(CommonInstantMessage message) {
+	public void handle(OurChatMessage message) {
 		send(message.to, message);
 	}
 
@@ -127,17 +163,5 @@ public class Server implements IMessageHandler {
 		clients.get(message.myAddress).setOnline(false);
 	}
 
-	public void start() {
-		communicator = new ServerCommunicator(myAddress,
-				new Consumer<Object>() {
-
-					@Override
-					public void accept(Object o) {
-						((IMessage) o).handle(Server.this);
-					}
-
-				});
-
-	}
 
 }

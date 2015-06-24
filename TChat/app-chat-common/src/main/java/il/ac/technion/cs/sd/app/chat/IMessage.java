@@ -1,4 +1,4 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
 /**
  * This interface, along with IMessageHandler, are used to implement the visitor

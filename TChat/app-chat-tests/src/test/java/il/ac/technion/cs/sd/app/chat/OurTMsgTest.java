@@ -1,4 +1,4 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
 import static org.junit.Assert.*;
 

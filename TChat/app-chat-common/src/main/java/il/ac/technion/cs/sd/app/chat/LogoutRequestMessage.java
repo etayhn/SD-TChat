@@ -1,4 +1,4 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
 /**
  * When a client wants to log out of the server, he sends this message.

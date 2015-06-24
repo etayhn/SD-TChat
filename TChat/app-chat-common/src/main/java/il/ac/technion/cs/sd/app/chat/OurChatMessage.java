@@ -1,4 +1,4 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
 /**
  * This class represents a regular message, sent from one client to another. The
@@ -6,7 +6,7 @@ package il.ac.technion.cs.sd.app.msg;
  * (in order to work with the Visitor Design Pattern), and we weren't sure if we
  * are allowed to do that.
  */
-public class CommonInstantMessage implements IMessage {
+public class OurChatMessage implements IMessage {
 	/**
 	 * The sender of the message
 	 */
@@ -15,30 +15,31 @@ public class CommonInstantMessage implements IMessage {
 	/**
 	 * The recipient of the message
 	 */
-	public final String to;
+	public final String room;
 	
 	/**
 	 * The content of the message.
 	 */
 	public final String content;
 
-	public CommonInstantMessage(String from, String to, String content) {
+
+	public OurChatMessage(String from, String room, String content) {
 		this.from = from;
-		this.to = to;
+		this.room = room;
 		this.content = content;
 	}
-	
-	public CommonInstantMessage(InstantMessage im) {
-		this(im.from, im.to, im.content);
-	}
 
+	public OurChatMessage(ChatMessage chatMessage) {
+		this(chatMessage.from, chatMessage.room, chatMessage.content);
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((content == null) ? 0 : content.hashCode());
 		result = prime * result + ((from == null) ? 0 : from.hashCode());
-		result = prime * result + ((to == null) ? 0 : to.hashCode());
+		result = prime * result + ((room == null) ? 0 : room.hashCode());
 		return result;
 	}
 
@@ -50,7 +51,7 @@ public class CommonInstantMessage implements IMessage {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		InstantMessage other = (InstantMessage) obj;
+		OurChatMessage other = (OurChatMessage) obj;
 		if (content == null) {
 			if (other.content != null)
 				return false;
@@ -61,10 +62,10 @@ public class CommonInstantMessage implements IMessage {
 				return false;
 		} else if (!from.equals(other.from))
 			return false;
-		if (to == null) {
-			if (other.to != null)
+		if (room == null) {
+			if (other.room != null)
 				return false;
-		} else if (!to.equals(other.to))
+		} else if (!room.equals(other.room))
 			return false;
 		return true;
 	}

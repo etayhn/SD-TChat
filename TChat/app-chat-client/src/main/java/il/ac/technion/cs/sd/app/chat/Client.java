@@ -1,7 +1,20 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
+import il.ac.technion.cs.sd.app.chat.OurChatMessage;
+import il.ac.technion.cs.sd.app.chat.FriendReplyMessage;
+import il.ac.technion.cs.sd.app.chat.FriendRequestMessage;
+import il.ac.technion.cs.sd.app.chat.IMessage;
+import il.ac.technion.cs.sd.app.chat.IMessageHandler;
+import il.ac.technion.cs.sd.app.chat.InstantMessage;
+import il.ac.technion.cs.sd.app.chat.LoginReplyMessage;
+import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
+import il.ac.technion.cs.sd.app.chat.LogoutReplyMessage;
+import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
+import il.ac.technion.cs.sd.app.chat.OnlineCheckReplyMessage;
+import il.ac.technion.cs.sd.app.chat.OnlineCheckRequestMessage;
 import il.ac.technion.cs.sd.lib.client.communication.ClientCommunicator;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.BlockingQueue;
@@ -26,6 +39,11 @@ public class Client implements IMessageHandler {
 	 */
 	public final String serverAddress;
 
+	/**
+	 * The rooms in which the client is currently logged in
+	 */
+	public final List<String> myRooms;
+	
 	/**
 	 * The ClientCommunicator with which the client and the server speak
 	 */
@@ -201,7 +219,7 @@ public class Client implements IMessageHandler {
 	}
 
 	@Override
-	public void handle(CommonInstantMessage message) {
+	public void handle(OurChatMessage message) {
 		messageConsumer.accept(new InstantMessage(message.from, message.to,
 				message.content));
 	}

@@ -7,6 +7,8 @@ package il.ac.technion.cs.sd.app.chat;
  */
 public class ServerChatApplication {
 	
+	private Server server;
+	
     /**
      * Starts a new mail server. Servers with the same name retain all their information until
      * {@link ServerChatApplication#clean()} is called.

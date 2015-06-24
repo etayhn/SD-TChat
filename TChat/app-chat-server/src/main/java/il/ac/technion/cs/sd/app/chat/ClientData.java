@@ -1,4 +1,6 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
+
+import il.ac.technion.cs.sd.app.chat.IMessage;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +13,7 @@ public class ClientData {
 	/**
 	 * the list of friends of the client
 	 */
-	private List<String> friends;
+	private List<String> rooms;
 
 	/**
 	 * The messages that were yet to be sent to the client (since he is offline)

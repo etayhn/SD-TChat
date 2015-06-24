@@ -1,4 +1,4 @@
-package il.ac.technion.cs.sd.app.msg;
+package il.ac.technion.cs.sd.app.chat;
 
 /**
  * This interface, along with IMessage, are used to implement the visitor design
@@ -8,40 +8,70 @@ package il.ac.technion.cs.sd.app.msg;
 public interface IMessageHandler {
 
 	/**
-	 * Defines behavior for a FriendReplyMessage. Default implementation is:
+	 * Defines behavior for a AllRoomsReply. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
 	 *            the message to handle
 	 */
-	default public void handle(FriendReplyMessage message) {
+	default public void handle(AllRoomsReply message) {
 		throw new UnsupportedOperationException();
 	}
 
 	/**
-	 * Defines behavior for a FriendRequestMessage. Default implementation is:
+	 * Defines behavior for a AllRoomsRequest. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
 	 *            the message to handle
 	 */
-	default public void handle(FriendRequestMessage message) {
+	default public void handle(AllRoomsRequest message) {
 		throw new UnsupportedOperationException();
 	}
 
 	/**
-	 * Defines behavior for a LoginReplyMessage. Default implementation is:
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
 	 *            the message to handle
 	 */
-	default public void handle(LoginReplyMessage message) {
+	default public void handle(ClientsInRoomReply message) {
 		throw new UnsupportedOperationException();
 	}
-
+	
 	/**
-	 * Defines behavior for a LoginRequestMessage. Default implementation is:
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(ClientsInRoomRequest message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(JoinRoomRequest message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(LeaveRoomRequest message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
@@ -50,42 +80,8 @@ public interface IMessageHandler {
 	default public void handle(LoginRequestMessage message) {
 		throw new UnsupportedOperationException();
 	}
-
 	/**
-	 * Defines behavior for a OnlineCheckRequestMessage. Default implementation
-	 * is: throw new UnsupportedOperationException();
-	 * 
-	 * @param messageHandler
-	 *            the message to handle
-	 */
-	default public void handle(OnlineCheckRequestMessage message) {
-		throw new UnsupportedOperationException();
-	}
-
-	/**
-	 * Defines behavior for a OnlineCheckReplyMessage. Default implementation
-	 * is: throw new UnsupportedOperationException();
-	 * 
-	 * @param messageHandler
-	 *            the message to handle
-	 */
-	default public void handle(OnlineCheckReplyMessage message) {
-		throw new UnsupportedOperationException();
-	}
-
-	/**
-	 * Defines behavior for a CommonInstantMessage. Default implementation is:
-	 * <i>throw new UnsupportedOperationException();</i>
-	 * 
-	 * @param messageHandler
-	 *            the message to handle
-	 */
-	default public void handle(CommonInstantMessage message) {
-		throw new UnsupportedOperationException();
-	}
-
-	/**
-	 * Defines behavior for a LogoutRequestMessage. Default implementation is:
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
@@ -94,18 +90,48 @@ public interface IMessageHandler {
 	default public void handle(LogoutRequestMessage message) {
 		throw new UnsupportedOperationException();
 	}
-
 	/**
-	 * Defines behavior for a LogoutReplyMessage. Default implementation is:
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
 	 * <i>throw new UnsupportedOperationException();</i>
 	 * 
 	 * @param messageHandler
 	 *            the message to handle
 	 */
-	default public void handle(LogoutReplyMessage message) {
+	default public void handle(MyOnlineRoomsReply message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(MyOnlineRoomsRequest message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(OurChatMessage message) {
+		throw new UnsupportedOperationException();
+	}
+	/**
+	 * Defines behavior for a ClientsInRoomReply. Default implementation is:
+	 * <i>throw new UnsupportedOperationException();</i>
+	 * 
+	 * @param messageHandler
+	 *            the message to handle
+	 */
+	default public void handle(OurRoomAnnouncement message) {
 		throw new UnsupportedOperationException();
 	}
 
+	
 	/**
 	 * Defines behavior for a IMessage. Default implementation is: <i>throw new
 	 * UnsupportedOperationException();</i> Good practice would be
