@@ -34,7 +34,7 @@ public class Server implements IMessageHandler {
 	/**
 	 * The ServerCommunicator with which the server speaks with the clients
 	 */
-	private ServerCommunicator communicator;
+	private il.ac.technion.cs.sd.lib.clientserver.Server communicator;
 
 	/**
 	 * the server's address
@@ -59,15 +59,17 @@ public class Server implements IMessageHandler {
 	}
 
 	public void start() {
-		communicator = new ServerCommunicator(myAddress,
-				new Consumer<Object>() {
+		communicator = new il.ac.technion.cs.sd.lib.clientserver.Server(myAddress);
+		communicator.start(new Consumer<Object>() {
 			
 			@Override
 			public void accept(Object o) {
 				((IMessage) o).handle(Server.this);
 			}
 			
-		});
+		}, IMessage.class);
+		communicator = new ServerCommunicator(myAddress,
+				
 		
 	}
 
