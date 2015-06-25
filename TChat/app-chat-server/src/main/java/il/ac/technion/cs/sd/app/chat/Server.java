@@ -1,21 +1,14 @@
 package il.ac.technion.cs.sd.app.chat;
 
 import il.ac.technion.cs.sd.app.chat.OurChatMessage;
-import il.ac.technion.cs.sd.app.chat.FriendReplyMessage;
-import il.ac.technion.cs.sd.app.chat.FriendRequestMessage;
 import il.ac.technion.cs.sd.app.chat.IMessage;
 import il.ac.technion.cs.sd.app.chat.IMessageHandler;
-import il.ac.technion.cs.sd.app.chat.LoginReplyMessage;
 import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
-import il.ac.technion.cs.sd.app.chat.LogoutReplyMessage;
 import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
-import il.ac.technion.cs.sd.app.chat.OnlineCheckReplyMessage;
-import il.ac.technion.cs.sd.app.chat.OnlineCheckRequestMessage;
-import il.ac.technion.cs.sd.lib.server.communication.ServerCommunicator;
-
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -60,16 +53,14 @@ public class Server implements IMessageHandler {
 
 	public void start() {
 		communicator = new il.ac.technion.cs.sd.lib.clientserver.Server(myAddress);
-		communicator.start(new Consumer<Object>() {
+		communicator.start(new BiConsumer<Object,String>() {
 			
 			@Override
-			public void accept(Object o) {
+			public void accept(Object o, String from) {
 				((IMessage) o).handle(Server.this);
 			}
 			
-		}, IMessage.class);
-		communicator = new ServerCommunicator(myAddress,
-				
+		});
 		
 	}
 
@@ -103,14 +94,11 @@ public class Server implements IMessageHandler {
 				
 				@Override
 				public void run() {
-					// TODO Auto-generated method stub
-					communicator.send(to, message);
+					communicator.send(to, message, false);
 					
 				}
 			}).start();
-		} else {
-			clientData.addMessageToUnsentQueue(message);
-		}
+		} 
 	}
 
 	// ***************************************************************

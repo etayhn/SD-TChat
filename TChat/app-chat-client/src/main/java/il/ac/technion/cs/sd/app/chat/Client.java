@@ -1,19 +1,10 @@
 package il.ac.technion.cs.sd.app.chat;
 
 import il.ac.technion.cs.sd.app.chat.OurChatMessage;
-import il.ac.technion.cs.sd.app.chat.FriendReplyMessage;
-import il.ac.technion.cs.sd.app.chat.FriendRequestMessage;
 import il.ac.technion.cs.sd.app.chat.IMessage;
 import il.ac.technion.cs.sd.app.chat.IMessageHandler;
-import il.ac.technion.cs.sd.app.chat.InstantMessage;
-import il.ac.technion.cs.sd.app.chat.LoginReplyMessage;
 import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
-import il.ac.technion.cs.sd.app.chat.LogoutReplyMessage;
 import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
-import il.ac.technion.cs.sd.app.chat.OnlineCheckReplyMessage;
-import il.ac.technion.cs.sd.app.chat.OnlineCheckRequestMessage;
-import il.ac.technion.cs.sd.lib.client.communication.ClientCommunicator;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -47,7 +38,7 @@ public class Client implements IMessageHandler {
 	/**
 	 * The ClientCommunicator with which the client and the server speak
 	 */
-	private ClientCommunicator communicator;
+	private il.ac.technion.cs.sd.lib.clientserver.Client communicator;
 
 	/**
 	 * A handler that needs to be run when a "regular" (common) instant message
@@ -107,7 +98,7 @@ public class Client implements IMessageHandler {
 	public Client(String username, String serverAddress,
 			Consumer<ChatMessage> messageConsumer,
 			Consumer<RoomAnnouncement> announcementConsumer) {
-		this.myAddress = myAddress;
+		this.myAddress = username;
 		this.serverAddress = serverAddress;
 		this.messageConsumer = messageConsumer;
 		this.announcementConsumer = announcementConsumer;
@@ -116,7 +107,8 @@ public class Client implements IMessageHandler {
 		this.isOnlineQueue = new LinkedBlockingDeque<>();
 		this.logoutQueue = new LinkedBlockingDeque<>();
 
-		communicator = new ClientCommunicator(myAddress, serverAddress,
+		communicator = new il.ac.technion.cs.sd.lib.clientserver.Client(myAddress);
+		communicator.start(serverAddress,
 				new Consumer<Object>() {
 
 					@Override
@@ -125,7 +117,6 @@ public class Client implements IMessageHandler {
 					}
 
 				});
-
 		getUnreadMessages();
 	}
 
@@ -172,7 +163,7 @@ public class Client implements IMessageHandler {
 			}
 		}
 
-		communicator.stop();
+		communicator.stopListenLoop();
 	}
 
 	/**

@@ -21,6 +21,7 @@ public class Client {
 
 	private String _serverAddress;
 	private ReliableHost _reliableHost;
+	private boolean isCommunicatorStopped;
 	
 	/**
 	 * Creates a new client.
@@ -52,11 +53,6 @@ public class Client {
 	 * While the consumer's callback is running - the listen loop is frozen, so the code in the 
 	 * callback shouldn't wait for a new message to be received by this client. 
 
-	 * If the type is generic, for example, a list of Integers, you should pass as 'dataType' 
-	 * something created with the following pattern:
-	 * {@code new TypeToken<List<Integer>>(){}.getType())}
-	 * @throws InvalidMessage Invalid message received from the server 
-	 * For example: the object sent as message data was not of type 'type'.
 	 * @throws InvalidOperation When the listen loop is already running when calling this method.
 	 */
 	public void start(String serverAddress, Consumer<Object> consumer)
@@ -72,6 +68,7 @@ public class Client {
 			_serverAddress = originalServerAddress;
 			throw new CommunicationFailure(e.getMessage());
 		}
+		isCommunicatorStopped = false;
 		
 	}
 	
@@ -83,6 +80,7 @@ public class Client {
 	public void stopListenLoop()
 	{
 		_reliableHost.stop();
+		isCommunicatorStopped = true;
 	}
 
 	/**
@@ -126,6 +124,10 @@ public class Client {
 	public String toString() {
 
 		return _reliableHost.getAddress();
+	}
+
+	public boolean isCommunicatorStopped() {
+		return isCommunicatorStopped;
 	}
 	
 }
