@@ -3,16 +3,14 @@ package il.ac.technion.cs.sd.app.chat;
 import il.ac.technion.cs.sd.app.chat.OurChatMessage;
 import il.ac.technion.cs.sd.app.chat.IMessage;
 import il.ac.technion.cs.sd.app.chat.IMessageHandler;
-import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
 import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
-import java.util.ArrayList;
+
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingDeque;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * This class represents a client in our client-server architecture. The client
@@ -33,7 +31,7 @@ public class Client implements IMessageHandler {
 	/**
 	 * The rooms in which the client is currently logged in
 	 */
-	public final List<String> myRooms;
+	public final Map<String,String> myRooms;
 
 	/**
 	 * The ClientCommunicator with which the client and the server speak
@@ -47,44 +45,35 @@ public class Client implements IMessageHandler {
 	private final Consumer<ChatMessage> messageConsumer;
 
 	/**
-	 * A function that defines how the client responds to friend requests from
-	 * other clients.
+	 * a consumer to be called when an announcement message is received from server.
 	 */
-	private final Function<String, Boolean> friendshipRequestHandler;
-
-	/**
-	 * a handler that accepts another client's response to a friend request and
-	 * processes it.
-	 */
-	private final BiConsumer<String, Boolean> friendshipReplyConsumer;
-
-	/**
-	 * A blocking queue we use to wait for a response from the server when it
-	 * needs to send us the unread messages list.
-	 */
-	private BlockingQueue<List<IMessage>> unreadMessagesQueue;
-
-	/**
-	 * A blocking queue we use to wait for a response from the server when it
-	 * needs to send us a response on an <i>isOnline</i> query
-	 */
-	private BlockingQueue<OnlineCheckReplyMessage> isOnlineQueue;
-
-	/**
-	 * A blocking queue we use to wait for a response from the server when it
-	 * needs to send a confirmation that we can safely log out and close our
-	 * communicator.
-	 */
-	private BlockingQueue<LogoutReplyMessage> logoutQueue;
-
 	private Consumer<RoomAnnouncement> announcementConsumer;
+
+	/**
+	 * A blocking queue we use to wait for a response from the server when it
+	 * needs to send us a response on a <i>myOnlineRooms</i> query
+	 */
+	private BlockingQueue<MyOnlineRoomsReply> myOnlineRooms;
+	
+	/**
+	 * A blocking queue we use to wait for a response from the server when it
+	 * needs to send us a response on an <i>allRooms</i> query
+	 */
+	private BlockingQueue<AllRoomsReply> allRooms;
+
+	/**
+	 * A blocking queue we use to wait for a response from the server when it
+	 * needs to send us a response on an <i>clientsInRoom</i> query
+	 */
+	private BlockingQueue<ClientsInRoomReply> clientsInRoom;
+
 
 	/**
 	 * Creates a new client, starts the connection with the server, and
 	 * retrieves all of the unread messages that the client got when he was not
 	 * logged in.
 	 * 
-	 * @param myAddress
+	 * @param who
 	 *            the client's address
 	 * @param serverAddress
 	 *            the server's address
@@ -103,9 +92,10 @@ public class Client implements IMessageHandler {
 		this.messageConsumer = messageConsumer;
 		this.announcementConsumer = announcementConsumer;
 
-		this.unreadMessagesQueue = new LinkedBlockingDeque<>();
-		this.isOnlineQueue = new LinkedBlockingDeque<>();
-		this.logoutQueue = new LinkedBlockingDeque<>();
+		this.clientsInRoom = new LinkedBlockingDeque<>();
+		this.allRooms = new LinkedBlockingDeque<>();
+		this.myOnlineRooms = new LinkedBlockingDeque<>();
+		this.myRooms = new ConcurrentHashMap<String,String>();
 
 		communicator = new il.ac.technion.cs.sd.lib.clientserver.Client(myAddress);
 		communicator.start(serverAddress,
@@ -117,30 +107,6 @@ public class Client implements IMessageHandler {
 					}
 
 				});
-		getUnreadMessages();
-	}
-
-	/**
-	 * An auxiliary function used to retrieve the messages that were sent to the
-	 * client when he was not logged in.
-	 */
-	private void getUnreadMessages() {
-		// sending a request
-		send(new LoginRequestMessage(myAddress));
-
-		// waiting for a response with all the unread mail to come
-		List<IMessage> unreadMessages;
-		while (true) {
-			try {
-				unreadMessages = unreadMessagesQueue.take();
-				break;
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
-		// processing all the unread mail the server sent
-		unreadMessages.forEach(m -> m.handle(this));
 	}
 
 	/**
@@ -152,17 +118,6 @@ public class Client implements IMessageHandler {
 		}
 		// sending a request
 		send(new LogoutRequestMessage(myAddress));
-
-		// waiting for a response
-		while (true) {
-			try {
-				logoutQueue.take();
-				break;
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-
 		communicator.stopListenLoop();
 	}
 
@@ -177,65 +132,112 @@ public class Client implements IMessageHandler {
 	}
 
 	@Override
-	public void handle(FriendReplyMessage message) {
-		friendshipReplyConsumer.accept(message.from, message.answer);
-	}
-
-	@Override
-	public void handle(FriendRequestMessage message) {
-		send(new FriendReplyMessage(myAddress, message.from,
-				friendshipRequestHandler.apply(message.from)));
-	}
-
-	@Override
-	public void handle(OnlineCheckReplyMessage message) {
-		try {
-			isOnlineQueue.put(message);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
-	public void handle(LoginReplyMessage message) {
-		try {
-			unreadMessagesQueue.put(message.unsentMessages);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
-	}
-
-	@Override
 	public void handle(OurChatMessage message) {
-		messageConsumer.accept(new InstantMessage(message.from, message.to,
-				message.content));
+		messageConsumer.accept(new ChatMessage(message.from, message.room, message.content));
 	}
 
-	public Optional<Boolean> askIfOnline(String who) {
+	@Override
+	public void handle(OurRoomAnnouncement message) {
+		announcementConsumer.accept(new RoomAnnouncement(message.who, message.room, message.type));
+	}
+
+	@Override
+	public void handle(MyOnlineRoomsReply message) {
+		try {
+			myOnlineRooms.put(message);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Override
+	public void handle(AllRoomsReply message) {
+		try {
+			allRooms.put(message);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Override
+	public void handle(ClientsInRoomReply message) {
+		try {
+			clientsInRoom.put(message);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public boolean isInRoom(String room) {
+		return myRooms.containsKey(room);
+	}
+
+	/**
+	 * @return All the rooms the client joined
+	 */
+	public List<String> getJoinedRooms() {
 		// sending a request
-		send(new OnlineCheckRequestMessage(myAddress, who));
+		send(new MyOnlineRoomsRequest(myAddress));
 
 		// waiting for a response
 		while (true) {
 			try {
-				return isOnlineQueue.take().answer;
+				return myOnlineRooms.take().myRooms;
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
 		}
 	}
 
-	public void handle(LogoutReplyMessage message) {
-		try {
-			logoutQueue.put(message);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+	/**
+	 * @return all rooms that have clients currently online, i.e., logged in
+	 */
+	public List<String> getAllRooms() {
+		send(new AllRoomsRequest(myAddress));
+
+		// waiting for a response
+		while (true) {
+			try {
+				return allRooms.take().allRooms;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
-	public boolean isInRoom(String room) {
-		return myRooms.contains(room);
+	/**
+	 * Gets all the clients that joined the room and are currently logged in. A client
+	 * does not have to be in a room to get a list of its clients.
+	 * @param room The room to check
+	 * @return A list of all the online clients in the room
+	 * @throws NoSuchRoomException If the room doesn't exist, or no clients are currently in it (i.e., are logged out)
+	 */
+	public List<String> getClientsInRoom(String room) throws NoSuchRoomException{
+		send(new MyOnlineRoomsRequest(myAddress));
+
+		// waiting for a response
+		while (true) {
+			try {
+				List<String> clients = clientsInRoom.take().clientsInRoom;
+				if(clientsInRoom.size() == 0){
+					throw new NoSuchRoomException();
+				}
+				return clients;
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	public void leaveRoom(String room) {
+
+		myRooms.remove(room);
+		
+	}
+
+	public void joinRoom(String room) {
+
+		myRooms.put(room,room);
 	}
 
 }

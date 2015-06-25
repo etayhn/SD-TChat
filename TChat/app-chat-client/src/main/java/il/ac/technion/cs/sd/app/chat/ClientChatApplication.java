@@ -52,6 +52,7 @@ public class ClientChatApplication {
 		if (client.isInRoom(room)) 
 			throw new AlreadyInRoomException();
 		
+		client.joinRoom(room);
 		client.send(new JoinRoomRequest(username, room));
 	}
 
@@ -64,6 +65,7 @@ public class ClientChatApplication {
 		if (!client.isInRoom(room)) 
 			throw new NotInRoomException();
 		
+		client.leaveRoom(room);
 		client.send(new LeaveRoomRequest(username, room));
 	}
 
@@ -72,7 +74,7 @@ public class ClientChatApplication {
 	 * A logged out message will be sent to all the <i>other</i> clients in rooms with the client.
 	 */
 	public void logout() {
-		throw new UnsupportedOperationException("Not implemented");
+		client.send(new LogoutRequestMessage(username));
 	}
 
 	/**
@@ -82,21 +84,22 @@ public class ClientChatApplication {
 	 * @throws NotInRoomException If the client isn't currently in the room
 	 */
 	public void sendMessage(String room, String what) throws NotInRoomException {
-		throw new UnsupportedOperationException("Not implemented");
+		
+		client.send(new OurChatMessage(username,room,what));
 	}
 
 	/**
 	 * @return All the rooms the client joined
 	 */
 	public List<String> getJoinedRooms() {
-		throw new UnsupportedOperationException("Not implemented");
+		return client.getJoinedRooms();
 	}
 
 	/**
 	 * @return all rooms that have clients currently online, i.e., logged in
 	 */
 	public List<String> getAllRooms() {
-		throw new UnsupportedOperationException("Not implemented");
+		return client.getAllRooms();
 	}
 	
 	/**
@@ -107,7 +110,8 @@ public class ClientChatApplication {
 	 * @throws NoSuchRoomException If the room doesn't exist, or no clients are currently in it (i.e., are logged out)
 	 */
 	public List<String> getClientsInRoom(String room) throws NoSuchRoomException {
-		throw new UnsupportedOperationException("Not implemented");
+		
+		return client.getClientsInRoom(room);
 	}
 
 	/**
@@ -116,7 +120,7 @@ public class ClientChatApplication {
 	 * was logged in.
 	 */
 	public void stop() {
-		throw new UnsupportedOperationException("Not implemented");
+		client.stop();
 	}
 
 }

@@ -5,9 +5,14 @@ import il.ac.technion.cs.sd.app.chat.IMessage;
 import il.ac.technion.cs.sd.app.chat.IMessageHandler;
 import il.ac.technion.cs.sd.app.chat.LoginRequestMessage;
 import il.ac.technion.cs.sd.app.chat.LogoutRequestMessage;
+import il.ac.technion.cs.sd.app.chat.RoomAnnouncement.Announcement;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -20,9 +25,12 @@ public class Server implements IMessageHandler {
 	/**
 	 * Stores all of the data about the clients in a clientName->clientData map
 	 */
-	private Map<String, ClientData> clients;
+	private final Map<String, ClientData> clients;
 	
-	private Map<String, Room> rooms;
+	private final Map<String, Room> allRooms;
+	
+	private final Map<String, Room> onlineRooms;
+
 
 	/**
 	 * The ServerCommunicator with which the server speaks with the clients
@@ -40,6 +48,8 @@ public class Server implements IMessageHandler {
 	public Server(String myAddress) {
 		this.myAddress = myAddress;
 		clients = new HashMap<>();
+		onlineRooms = new ConcurrentHashMap<String, Room>();
+		allRooms = new ConcurrentHashMap<String, Room>();
 
 		start();
 	}
@@ -65,7 +75,7 @@ public class Server implements IMessageHandler {
 	}
 
 	public void sendToRoom(String from, String room, IMessage message) {
-		for (String to : rooms.get(room).getClients()) {
+		for (String to : allRooms.get(room).getClients()) {
 			if (!to.equals(from)) {
 				send(to, message);
 			}
@@ -104,54 +114,72 @@ public class Server implements IMessageHandler {
 	// ***************************************************************
 	
 	@Override
-	public void handle(FriendReplyMessage message) {
-		clients.get(message.from).addFriend(message.to);
-		clients.get(message.to).addFriend(message.from);
+	public void handle(AllRoomsRequest message) {
 
-		send(message.to, message);
+		List<String> rooms = new ArrayList<>();
+		rooms.addAll(onlineRooms.keySet());
+		send(message.who, new AllRoomsReply(rooms));
+	}
+	
+	@Override
+	public void handle(MyOnlineRoomsRequest message) {
+		List<String> rooms = new ArrayList<>(clients.get(message.who).getRooms().keySet());
+
+		send(message.who, new MyOnlineRoomsReply(rooms));
 	}
 
 	@Override
-	public void handle(FriendRequestMessage message) {
-		send(message.to, message);
-	}
+	public void handle(ClientsInRoomRequest message) {
+		
+		Room room = onlineRooms.get(message.room);
 
-	@Override
-	public void handle(LoginRequestMessage message) {
-		ClientData clientData = clients.get(message.myAddress);
-		if (clientData == null) {
-			clientData = new ClientData();
-			clients.put(message.myAddress, clientData);
+		List<String> clients;
+		if(room == null){
+			clients = new ArrayList<>();
+		}else{
+			clients = room.getOnlineClients();
 		}
-		clientData.setOnline(true);
-		send(message.myAddress,
-				new LoginReplyMessage(clientData.getUnsentMessages()));
+		send(message.who, new ClientsInRoomReply(message.room, clients));
 	}
 
 	@Override
-	public void handle(OnlineCheckRequestMessage message) {
-		ClientData clientData = clients.get(message.whoIsChecking);
-		Optional<Boolean> response = null;
-		if (!clientData.isFriendsWith(message.whoIsBeingChecked)) {
-			response = Optional.empty();
-		} else {
-			response = Optional.of(clients.get(message.whoIsBeingChecked)
-					.isOnline());
+	public void handle(JoinRoomRequest message) {
+		ClientData clientData = clients.get(message.who);
+		Room room = allRooms.get(message.room);
+		if(room == null){
+			room = new Room(message.room);
+			allRooms.put(message.room, room);
+			onlineRooms.put(message.room, room);
 		}
-		send(message.whoIsChecking, new OnlineCheckReplyMessage(
-				message.whoIsBeingChecked, response));
+		
+		clientData.addRoom(message.room, room);
+		room.addClient(message.who, clientData);
+		sendToRoom(message.who, message.room, new OurRoomAnnouncement(message.who, message.room, Announcement.JOIN));
 	}
-
+	
 	@Override
-	public void handle(OurChatMessage message) {
-		send(message.to, message);
+	public void handle(LeaveRoomRequest message) {
+		ClientData clientData = clients.get(message.who);
+		Room room = allRooms.get(message.room);
+		
+		room.removeClient(message.who);
+		if(room.isEmpty()){
+			onlineRooms.remove(message.room);
+		}
+		clientData.removeRoom(message.room);
+		sendToRoom(message.who, message.room, new OurRoomAnnouncement(message.who, message.room, Announcement.LEAVE));
 	}
-
+	
+	
 	@Override
 	public void handle(LogoutRequestMessage message) {
-		send(message.myAddress, new LogoutReplyMessage());
-		clients.get(message.myAddress).setOnline(false);
+		ClientData clientData = clients.get(message.who);
+		clients.remove(message.who);
+		
+		for (Room room : clientData.getRooms().values()){
+			room.onClientLogout(message.who);
+			sendToRoom(message.who, room.name, new OurRoomAnnouncement(message.who, room.name, Announcement.DISCONNECT));
+		}
 	}
-
 
 }

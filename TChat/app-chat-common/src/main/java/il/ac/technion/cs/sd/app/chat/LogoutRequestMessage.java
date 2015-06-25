@@ -8,10 +8,10 @@ public class LogoutRequestMessage implements IMessage {
 	/**
 	 * The address of the client who wishes to log out.
 	 */
-	public final String myAddress;
+	public final String who;
 
 	public LogoutRequestMessage(String myAddress) {
-		this.myAddress = myAddress;
+		this.who = myAddress;
 	}
 
 	@Override

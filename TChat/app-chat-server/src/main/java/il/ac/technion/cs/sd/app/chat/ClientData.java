@@ -2,6 +2,8 @@ package il.ac.technion.cs.sd.app.chat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * A class that saves a client's data on the server.
@@ -11,7 +13,7 @@ public class ClientData {
 	/**
 	 * the list of friends of the client
 	 */
-	private List<String> rooms;
+	private Map<String,Room> rooms;
 
 	/**
 	 * true iff the client is online, i.e. logged to the server
@@ -19,7 +21,7 @@ public class ClientData {
 	private boolean isOnline;
 
 	public ClientData() {
-		rooms = new ArrayList<>();
+		rooms = new ConcurrentHashMap<>();
 		isOnline = false;
 	}
 
@@ -46,9 +48,19 @@ public class ClientData {
 	 * @param room
 	 *            the room to add
 	 */
-	public void addRoom(String room) {
-		if (!rooms.contains(room))
-			rooms.add(room);
+	public void addRoom(String roomName, Room room) {
+		rooms.put(roomName, room);
+	}
+
+	public Map<String,Room> getRooms() {
+
+		return rooms;
+	}
+
+	public void removeRoom(String roomName) {
+
+		rooms.remove(roomName);
+		
 	}
 
 }

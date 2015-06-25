@@ -5,6 +5,10 @@ import java.util.List;
 public class ClientsInRoomReply implements IMessage {
 
 	public final String room;
+	
+	/**
+	 * if no such room exists or room is empty, this list should be empty.
+	 */
 	public final List<String> clientsInRoom;
 
 	public ClientsInRoomReply(String room, List<String> clientsInRoom) {

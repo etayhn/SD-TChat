@@ -4,10 +4,10 @@ import java.util.List;
 
 public class MyOnlineRoomsReply implements IMessage {
 
-	public final List<String> onlineRooms;
+	public final List<String> myRooms;
 
-	public MyOnlineRoomsReply(List<String> onlineRooms) {
-		this.onlineRooms = onlineRooms;
+	public MyOnlineRoomsReply(List<String> myRooms) {
+		this.myRooms = myRooms;
 	}
 
 	@Override
