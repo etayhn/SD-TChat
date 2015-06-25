@@ -3,7 +3,6 @@ package il.ac.technion.cs.sd.lib.clientserver;
 import il.ac.technion.cs.sd.msg.MessengerException;
 
 import java.lang.reflect.Type;
-import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -52,15 +51,6 @@ public class Client {
 	 * @param consumer The consumer who's callback will be invoked for each message received from the server.
 	 * While the consumer's callback is running - the listen loop is frozen, so the code in the 
 	 * callback shouldn't wait for a new message to be received by this client. 
-	 * @param dataType The type of the object the server sends asynchronously to the client in each 
-	 * message as data.
-	 * (i.e. the type of the parameter the consumer's callback function receives).
-	 * e.g.:
-	 * 		Integer.class
-	 * If the type is generic, for example, a list of Integers, you should pass as 'dataType' 
-	 * something created with the following pattern:
-	 * 		{@code new TypeToken<List<Integer>>(){}.getType())}
-	 * (sorry for that - it's a requirement by underlying GSON library).
 
 	 * If the type is generic, for example, a list of Integers, you should pass as 'dataType' 
 	 * something created with the following pattern:
@@ -69,18 +59,18 @@ public class Client {
 	 * For example: the object sent as message data was not of type 'type'.
 	 * @throws InvalidOperation When the listen loop is already running when calling this method.
 	 */
-	public <T> void start(String serverAddress, Consumer<T> consumer, Type dataType)
+	public void start(String serverAddress, Consumer<Object> consumer)
 	{
 		String originalServerAddress = _serverAddress;
 		_serverAddress = serverAddress;
 		
 		try {
 			_reliableHost.start((fromAddress,data) -> {
-				consumer.accept(Utils.fromGsonStrToObject(data, dataType));
+				consumer.accept(Utils.fromXStreamerStrToObject(data));
 			});
 		} catch (MessengerException e) {
 			_serverAddress = originalServerAddress;
-			throw new CommunicationFailure();
+			throw new CommunicationFailure(e.getMessage());
 		}
 		
 	}
@@ -100,9 +90,9 @@ public class Client {
 	 * @param data The object to be sent to the server (as message data).
 	 * Parametric types of data are not supported.
 	 */
-	public <T> void send(T data) {
+	public void send(Object data) {
 		try {
-			String payload = Utils.fromObjectToGsonStr(data);
+			String payload = Utils.fromObjectToXStreamerStr(data);
 			_reliableHost.send(_serverAddress, payload, false);
 		} catch (MessengerException e) {
 			throw new InvalidOperation();
@@ -113,20 +103,19 @@ public class Client {
 	/**
 	 * Sends a message to the server, and blocks until a response message is received.
 	 * @param data The object to be sent to the server (as message data).
-	 * @param responseType The type of the object the server sends back as data.
-	 * (i.e. the type of the returned value).
+	 * 
 	 * @return The response message data. 
 	 * The response message is guaranteed to be the response to the message sent by this method
 	 * (and not some other unrelated message the server sent the client).
 	 * @throws InvalidMessage Invalid message was received back from the server. 
 	 */
-	public <T, S> S sendAndBlockUntilResponseArrives(T data, Type responseType)
+	public Object sendAndBlockUntilResponseArrives(Object data)
 	{
 		try {
 			String str = _reliableHost.sendAndBlockUntilResponseArrives(
-					_serverAddress, Utils.fromObjectToGsonStr(data));
+					_serverAddress, Utils.fromObjectToXStreamerStr(data));
 			
-			return Utils.fromGsonStrToObject(str, responseType);
+			return Utils.fromXStreamerStrToObject(str);
 		} catch (MessengerException e) {
 			throw new InvalidOperation();
 		}

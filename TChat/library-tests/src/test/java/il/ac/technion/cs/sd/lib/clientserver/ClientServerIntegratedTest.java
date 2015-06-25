@@ -39,69 +39,7 @@ public class ClientServerIntegratedTest {
 		return $;
 	}
 
-	private class POJO1
-	{
-		public int i;
-		public String str;
-		POJO1(int i, String str) {
-			this.i = i;
-			this.str = str;
-		}
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			POJO1 other = (POJO1) obj;
-			if (i != other.i)
-				return false;
-			if (str == null) {
-				if (other.str != null)
-					return false;
-			} else if (!str.equals(other.str))
-				return false;
-			return true;
-		}
-	}
 
-	private class POJO2
-	{
-		public int i;
-		public String str;
-
-		POJO2(int i, String str, List<POJO1> pojos) {
-			this.i = i;
-			this.str = str;
-			this.pojos = pojos;
-		}
-		@Override
-		public boolean equals(Object obj) {
-			if (this == obj)
-				return true;
-			if (obj == null)
-				return false;
-			if (getClass() != obj.getClass())
-				return false;
-			POJO2 other = (POJO2) obj;
-			if (i != other.i)
-				return false;
-			if (pojos == null) {
-				if (other.pojos != null)
-					return false;
-			} else if (!pojos.equals(other.pojos))
-				return false;
-			if (str == null) {
-				if (other.str != null)
-					return false;
-			} else if (!str.equals(other.str))
-				return false;
-			return true;
-		}
-		public List<POJO1> pojos;
-	}
 
 	private POJO1 pojo1_a;
 	private POJO1 pojo1_b;
@@ -118,20 +56,20 @@ public class ClientServerIntegratedTest {
 		S second;
 	}
 
-	BlockingQueue<Pair<POJO1,String>> biConsumer1_bq;
-	private BiConsumer<POJO1,String> biConsumer1 = (p,from) ->
+	BlockingQueue<Pair<Object,String>> biConsumer1_bq;
+	private BiConsumer<Object,String> biConsumer1 = (p,from) ->
 	{
-		biConsumer1_bq.add(new Pair<POJO1,String>(p,from));
+		biConsumer1_bq.add(new Pair<Object,String>(p,from));
 	};
 
-	BlockingQueue<POJO1> consumer1_bq;
-	private Consumer<POJO1> consumer1 = p ->
+	BlockingQueue<Object> consumer1_bq;
+	private Consumer<Object> consumer1 = p ->
 	{
 		consumer1_bq.add(p);
 	};
 
-	BlockingQueue<POJO2> consumer2_bq;
-	private Consumer<POJO2> consumer2 = p ->
+	BlockingQueue<Object> consumer2_bq;
+	private Consumer<Object> consumer2 = p ->
 	{
 		consumer2_bq.add(p);
 	};
@@ -170,7 +108,7 @@ public class ClientServerIntegratedTest {
 
 		server1.saveObjectToFile("Integer", x);
 
-		Optional<POJO1> $ = server1.readObjectFromFile("Integer", Integer.class);
+		Optional<Object> $ = server1.readObjectFromFile("Integer");
 		assertEquals($.get(), x);
 	}
 
@@ -182,7 +120,7 @@ public class ClientServerIntegratedTest {
 
 		server1.saveObjectToFile("pojo1", pojo1);
 
-		Optional<POJO1> $ = server1.readObjectFromFile("pojo1", POJO1.class);
+		Optional<Object> $ = server1.readObjectFromFile("pojo1");
 		assertEquals($.get(), pojo1);
 	}
 
@@ -192,10 +130,10 @@ public class ClientServerIntegratedTest {
 		server1.saveObjectToFile("pojo1", pojo1_a);
 		server1.saveObjectToFile("pojo2", pojo1_b);
 
-		Optional<POJO1> $ = server1.readObjectFromFile("pojo1", POJO1.class);
+		Optional<Object> $ = server1.readObjectFromFile("pojo1");
 		assertEquals($.get(), pojo1_a);
 
-		$ = server1.readObjectFromFile("pojo2", POJO1.class);
+		$ = server1.readObjectFromFile("pojo2");
 		assertEquals($.get(), pojo1_b);
 	}
 
@@ -206,8 +144,8 @@ public class ClientServerIntegratedTest {
 
 		server1.saveObjectToFile("c", pojo2_a);
 
-		Optional<POJO2> $ = server1.readObjectFromFile("c", POJO2.class );
-		//Optional<POJO2> $ = server1.readObjectFromFile("c", new POJO2().getClass() );
+		Optional<Object> $ = server1.readObjectFromFile("c" );
+		//Optional<Object> $ = server1.readObjectFromFile("c", new POJO2().getClass() );
 
 		assertEquals($.get(), pojo2_a);
 	}
@@ -217,14 +155,14 @@ public class ClientServerIntegratedTest {
 
 		POJO1 pojo1 = new POJO1(1, "hi");
 
-		server1.start(biConsumer1, POJO1.class);
+		server1.start(biConsumer1);
 		server1.saveObjectToFile("pojo1", pojo1);
 		server1.stop();
 
 
 		Server s = new Server(server1.getAddress());
-		s.start(biConsumer1, POJO1.class);
-		Optional<POJO1> $ = s.readObjectFromFile("pojo1", POJO1.class);
+		s.start(biConsumer1);
+		Optional<Object> $ = s.readObjectFromFile("pojo1");
 		s.stop();
 
 		assertEquals($.get(), pojo1);
@@ -238,7 +176,7 @@ public class ClientServerIntegratedTest {
 
 		server1.clearPersistentData();
 
-		Optional<POJO1> $ = server1.readObjectFromFile("pojo1", POJO1.class);
+		Optional<Object> $ = server1.readObjectFromFile("pojo1");
 		assertFalse($.isPresent());
 	}
 
@@ -248,13 +186,13 @@ public class ClientServerIntegratedTest {
 
 		for (int k=0; k<5; k++)
 		{
-			clients.get(0).start(server1.getAddress(), consumer1, POJO1.class);
-			server1.start(biConsumer1, POJO1.class);
+			clients.get(0).start(server1.getAddress(), consumer1);
+			server1.start(biConsumer1);
 
 			for (int i=0; i<4; i++)
 			{
 				clients.get(0).send(pojo1_a);
-				Pair<POJO1,String> $ = biConsumer1_bq.take();
+				Pair<Object,String> $ = biConsumer1_bq.take();
 				assertEquals($.first, pojo1_a);
 				assertEquals($.second, clients.get(0).getAddress());
 			}
@@ -269,13 +207,13 @@ public class ClientServerIntegratedTest {
 
 		for (int k=0; k<3; k++)
 		{
-			clients.get(0).start(server1.getAddress(), consumer1, POJO1.class);
-			server1.start(biConsumer1, POJO1.class);
+			clients.get(0).start(server1.getAddress(), consumer1);
+			server1.start(biConsumer1);
 
 			for (int i=0; i<10; i++)
 			{
 				server1.send(clients.get(0).getAddress(), pojo1_a, false);
-				POJO1 $ = consumer1_bq.take();
+				Object $ = consumer1_bq.take();
 				assertEquals($, pojo1_a);
 			}
 
@@ -292,19 +230,22 @@ public class ClientServerIntegratedTest {
 			tmp = 0; // messages count;
 			final int messagesNumToSend = 7;
 
-			clients.get(0).start(server1.getAddress(), (POJO1 p) ->
+			clients.get(0).start(server1.getAddress(), (x) ->
 			{
+				POJO1 p = (POJO1) x;
 				tmp++;
 				if (p.i > 0)
 				{
 					POJO1 p2 = new POJO1(p.i-1, "");
 					clients.get(0).send(p2);
 				}
-			}, POJO1.class);
+			});
 
 
-			server1.start( (POJO1 p, String from) ->
+			server1.start( (x, from) ->
 			{
+				POJO1 p = (POJO1) x;
+
 				tmp++;
 				if (p.i > 0)
 				{
@@ -312,8 +253,8 @@ public class ClientServerIntegratedTest {
 					server1.send(clients.get(0).getAddress(), p2, false);
 				}
 
-				biConsumer1_bq.add(new Pair<POJO1,String>(p,from));
-			}, POJO1.class);
+				biConsumer1_bq.add(new Pair<>(p,from));
+			});
 
 
 			clients.get(0).send(new POJO1(messagesNumToSend-1, "aaa"));
@@ -332,17 +273,17 @@ public class ClientServerIntegratedTest {
 
 		for (int k=0; k<2; k++)
 		{
-			clients.get(0).start(server1.getAddress(), consumer1, POJO1.class);
+			clients.get(0).start(server1.getAddress(), consumer1);
 			server1.start((pojo, str) ->
 			{
 				assertEquals(str, clients.get(0).getAddress());
 				server1.send(clients.get(0).getAddress(), pojo1_b, true);
-			}, POJO1.class);
+			});
 
 
 			for (int i=0; i<6; i++)
 			{			
-				POJO1 $ = clients.get(0).sendAndBlockUntilResponseArrives(pojo1_a, POJO1.class);
+				Object $ = clients.get(0).sendAndBlockUntilResponseArrives(pojo1_a);
 				assertEquals($,pojo1_b);
 			}			
 
@@ -354,16 +295,16 @@ public class ClientServerIntegratedTest {
 
 	@Test(timeout=5000)
 	public void serverSendsComplexResponseBackToClient() throws InterruptedException {
-		clients.get(0).start(server1.getAddress(), consumer2, POJO2.class);
+		clients.get(0).start(server1.getAddress(), consumer2);
 		server1.start((pojo, str) ->
 		{
 			assertEquals(str, clients.get(0).getAddress());
 			server1.send(clients.get(0).getAddress(), pojo2_a, true);
-		}, POJO2.class);
+		});
 
 
 
-		POJO2 $ = clients.get(0).sendAndBlockUntilResponseArrives(pojo2_a, POJO2.class);
+		Object $ = clients.get(0).sendAndBlockUntilResponseArrives(pojo2_a);
 		assertEquals($,pojo2_a);
 
 
@@ -381,14 +322,15 @@ public class ClientServerIntegratedTest {
 		{
 			for (int i=0; i<CLIENTS_NUM; i++)
 			{
-				clients.get(i).start(server1.getAddress(), consumer1, POJO1.class);
+				clients.get(i).start(server1.getAddress(), consumer1);
 			}
 
 
-			server1.start(   (POJO1 pojo, String str) ->
+			server1.start(   (x, str) ->
 			{
+				POJO1 pojo = (POJO1) x;
 				server1.send(str, pojo, pojo.i > 0);
-			}, POJO1.class);
+			});
 
 
 			int expectedCharsNum = 0;
@@ -415,15 +357,13 @@ public class ClientServerIntegratedTest {
 
 					Thread t1 = new Thread( () -> {
 						POJO1 p = new POJO1(1, "bbbbbbbbb".substring(0,rnd.nextInt(5)+1));
-						POJO1 $ = clients.get(0).sendAndBlockUntilResponseArrives(
-								p, POJO1.class);
+						Object $ = clients.get(0).sendAndBlockUntilResponseArrives(p);
 						assertEquals($, p);
 					});
 
 					Thread t2 = new Thread( () -> {
 						POJO1 p = new POJO1(1, "bbbbbbbbb".substring(0,rnd.nextInt(5)+1));
-						POJO1 $ = clients.get(1).sendAndBlockUntilResponseArrives(
-								p, POJO1.class);
+						Object $ = clients.get(1).sendAndBlockUntilResponseArrives(p);
 						assertEquals($, p);
 					});
 
@@ -444,7 +384,7 @@ public class ClientServerIntegratedTest {
 
 			for (int i=0; i<expectedQueueSize; i++)
 			{
-				POJO1 p = consumer1_bq.take();
+				POJO1 p = (POJO1) consumer1_bq.take();
 				expectedCharsNum -= p.str.length();
 			}
 
@@ -473,16 +413,16 @@ public class ClientServerIntegratedTest {
 			final Integer messagesToSendFromClient_total = 
 					messagesToSendFromClient_block + messagesToSendFromClient_nonblock;
 			
-			clients.get(0).start(server1.getAddress(), (Integer i) ->
+			clients.get(0).start(server1.getAddress(), (x) ->
 			{
+				Integer i = (Integer) x;
 				if (i > 0)
 				{ 
 					i--;
 					tmp++;
 					assert(i%2 == 0);
 
-					Integer $ = clients.get(0).sendAndBlockUntilResponseArrives(
-							i,Integer.class);
+					Integer $ = (Integer) clients.get(0).sendAndBlockUntilResponseArrives(i);
 					assertEquals((Integer)$, i);
 						
 					if (i>0)
@@ -494,19 +434,21 @@ public class ClientServerIntegratedTest {
 					}
 
 				}
-			}, Integer.class);
+			});
 
 
-			server1.start((Integer i,String from) ->
+			server1.start((x,from) ->
 			{
+				Integer i = (Integer) x;
+
 				if (i<0)
 				{
 					tmp++;
 					return;
 				}
 				boolean isResponse = (i%2 == 0);
-				server1.<Integer>send(clients.get(0).getAddress(), i, isResponse);
-			}, Integer.class);
+				server1.send(clients.get(0).getAddress(), i, isResponse);
+			});
 
 			
 			for (int i=0; i<2; i++)

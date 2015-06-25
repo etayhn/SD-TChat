@@ -11,12 +11,7 @@ import org.junit.Test;
 
 public class ClientTest {
 	Client client;
-	class MessageData{
-		String data;
-		MessageData(String msg){
-			data = msg;
-		}
-	}
+
 	@Before
 	public void setUp() throws Exception {
 		client = new Client("Idan");
@@ -33,8 +28,15 @@ public class ClientTest {
 	
 	@Test(expected=InvalidOperation.class)
 	public void startANewLoopTwiceThrowsException(){
-		client.start("T2", x->{}, Integer.class);
-		client.start("T2", x->{}, Integer.class);
+		try{
+			client.start("T2", x->{});
+			client.start("T2", x->{});
+		}catch(Exception e){
+			throw e;
+			
+		}finally{
+			client.stopListenLoop();
+		}
 	}
 	
 	@Test(expected=InvalidOperation.class)
@@ -43,8 +45,9 @@ public class ClientTest {
 	}
 	
 	@Test
-	public void shouldntThrowWhenStopWithLoop(){
-		client.start("T2", x->{}, Integer.class);
+	public void shouldntThrowWhenStopWithLoop() throws InterruptedException{
+		client.start("T2", x->{});
+		Thread.sleep(200);
 		client.stopListenLoop();
 	}
 	

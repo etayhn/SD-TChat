@@ -3,24 +3,12 @@ package il.ac.technion.cs.sd.lib.clientserver;
 import il.ac.technion.cs.sd.msg.MessengerException;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.io.OutputStreamWriter;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Type;
-import java.nio.file.Files;
 import java.util.Optional;
 import java.util.function.BiConsumer;
 
 import org.apache.commons.io.FileUtils;
-
-import com.google.gson.stream.JsonReader;
-import com.google.gson.stream.JsonWriter;
 
 
 /**
@@ -80,11 +68,11 @@ public class Server {
 	 * (sorry for that - it's a requirement by underlying GSON library).
 	 * @throws InvalidMessage If the listen loop is already running. 
 	 */
-	public <T> void start(BiConsumer<T,String> consumer, Type dataType) {
+	public void start(BiConsumer<Object,String> consumer) {
 		
 		try {
 			_reliableHost.start((fromAddress, data) -> {
-				consumer.accept(Utils.fromGsonStrToObject(data, dataType), fromAddress);
+				consumer.accept(Utils.fromXStreamerStrToObject(data), fromAddress);
 			});
 		} catch (MessengerException e) {
 			System.out.println(e.getMessage());
@@ -121,12 +109,12 @@ public class Server {
 	 * response arrives.
 	 * @throws InvalidOperation Bad clientAddress address etc..
 	 */
-	public <T> void send(String clientAddress, T data, boolean isResponse)
+	public void send(String clientAddress, Object data, boolean isResponse)
 	{
 		try {
-			_reliableHost.send(clientAddress, Utils.fromObjectToGsonStr(data), isResponse);
+			_reliableHost.send(clientAddress, Utils.fromObjectToXStreamerStr(data), isResponse);
 		} catch (MessengerException e) {
-			throw new CommunicationFailure();
+			throw new CommunicationFailure(e.getMessage());
 		}
 	}
 	
@@ -158,15 +146,16 @@ public class Server {
 	 * will be lost.
 	 * @param data The object to be saved to the file.  
 	 */
-	public <T> void saveObjectToFile(String filename, T data)
+	public void saveObjectToFile(String filename, Object data)
 	{
-		File file = getFileByName(filename, true);
-		
-		try (JsonWriter persistentDataWriter = createJsonWriter(file)) 
-		{
-			Utils.writeObjectToJsonWriter(data,persistentDataWriter);
+		File dir = getServerPersistentDir();
+		if(!dir.exists()){
+			dir.mkdir();
+		}
+		try {
+			Utils.writeToFile(data, getServerPersistentDir().getAbsolutePath() + "/" +filename);
 		} catch (IOException e) {			
-			throw new RuntimeException("Failed to close stream");
+			throw new RuntimeException("Failed to write file");
 		}
 	}
 	 
@@ -177,88 +166,18 @@ public class Server {
 	 * @return The object read, or empty if the file doesn't exist.
 	 * @throws BadFileContent If an unexpected file content was read.
 	 */
-	public <T> Optional<T> readObjectFromFile(String filename, Type type)
+	public Optional<Object> readObjectFromFile(String filename)
 	{
-		File file = getFileByName(filename, false);
+		Optional<Object> $;
 		
-		if (!file.exists())
-		{
-			return Optional.empty();
+		try {
+			$ = Optional.of(Utils.readFromFile(getServerPersistentDir().getAbsolutePath()+ "/"  + filename));
+		} catch (IOException e) {
+			$=Optional.empty();
 		}
-		
-		
-		Optional<T> $;
-		
-		try (JsonReader persistentDataReader = createJsonReader(file))
-		{
-			$ =  Optional.of(Utils.readObjectFromGsonReader(persistentDataReader, type));
-		}
-		catch (RuntimeException e)
-		{
-			throw new BadFileContent();
-		} catch (IOException e1) {
-			throw new RuntimeException("Failed to close stream");
-		}
-		
 		return $;
 	}
 	
-
-	
-
-	/**
-	 * Precondition: the directory f is in must already exist (f itself might not exist).
-	 */
-	private JsonWriter createJsonWriter(File f)
-	{
-		try {
-			OutputStream stream = new FileOutputStream(f);
-			return  new JsonWriter(new OutputStreamWriter(stream, Utils.ENCODING));
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException("UnsupportedEncodingException");
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileNotFoundException");
-		}
-	}
-	
-	
-	/**
-	 * Precondition: f is an existing file.
-	 * @throws RuntimeException - file not found.
-	 */
-	private JsonReader createJsonReader(File f)
-	{
-		if(!f.exists())
-		{
-			throw new RuntimeException("File does not exist");
-		}
-		try {
-			InputStream stream = new FileInputStream(f);
-			return new JsonReader(new InputStreamReader(stream, Utils.ENCODING));
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException("UnsupportedEncodingException");
-		} catch (FileNotFoundException e) {
-			throw new RuntimeException("FileNotFoundException");
-		}
-	}
-
-	/**
-	 * Returns a File object representing the file.
-	 * @param filename - the filename, without path.
-	 * @param createItsDirIfNecessary If true, and the directory of the file does not exist - it is 
-	 * created (along with all necessary parents).
-	 */
-	private File getFileByName(String filename, boolean createItsDirIfNecessary)
-	{
-		File serverDir = getServerPersistentDir();
-		if (createItsDirIfNecessary)
-		{
-			serverDir.mkdirs();
-		}
-		return new File(serverDir, filename);
-	}
-
-
 	// returns the directory holding the persistent files of the server.
 	private File getServerPersistentDir() {
 		return new File(getPesistentDirOfAllServers(), getServerPersistentDirName());

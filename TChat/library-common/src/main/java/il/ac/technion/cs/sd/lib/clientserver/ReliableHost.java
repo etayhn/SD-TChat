@@ -75,40 +75,6 @@ class ReliableHost {
 	Thread listenThread;
 
 	
-	/**
-	 * We'll send objects of this class via Messenger.
-	 */
-	private class InnerMessage
-	{
-		@SuppressWarnings("unused")
-		InnerMessage() {}
-		InnerMessage(long messageId, Long respnseTargetId, String data, String fromAddress) {
-			this.messageId = messageId;
-			this.responseTargetId = respnseTargetId;
-			this.data = data;
-			this.fromAddress = fromAddress;
-		}
-
-		Long messageId;
-		
-		/* The id of the message that this message is the response to, 
-		 * or null if this message is not a response. */
-		Long responseTargetId; 
-		
-		String data;
-		
-		// The address of the sender.
-		String fromAddress;
-		
-		
-		@Override
-		public String toString()
-		{
-			return "[from:" + Utils.showable(fromAddress) + ",messageId=" + messageId + 
-			"," + "responseTargetId=" + responseTargetId + "]"; 
-		}
-
-	}
 
 	/**
 	 * @param address The address of the new host.
@@ -387,7 +353,7 @@ class ReliableHost {
 				Utils.DEBUG_LOG_LINE("===try #" + TMP__tries + "     (by " + _address + ")");
 				
 				
-				String payload = Utils.fromObjectToGsonStr(newMessage);
+				String payload = Utils.fromObjectToXStreamerStr(newMessage);
 				
 				waitingForRecepientConfirmation = true;
 				primitiveSendRepeatedly(targetAddress, payload);
@@ -473,7 +439,7 @@ class ReliableHost {
 
 
 	private InnerMessage getInnerMessageFromPayload(String payload) {
-		return Utils.fromGsonStrToObject(payload, InnerMessage.class);
+		return (InnerMessage) Utils.fromXStreamerStrToObject(payload);
 	}
 
 }
