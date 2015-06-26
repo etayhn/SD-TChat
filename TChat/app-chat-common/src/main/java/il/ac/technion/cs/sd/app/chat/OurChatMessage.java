@@ -10,7 +10,7 @@ public class OurChatMessage implements IMessage {
 	/**
 	 * The sender of the message
 	 */
-	public final String from;
+	public final String who;
 	
 	/**
 	 * The recipient of the message
@@ -24,7 +24,7 @@ public class OurChatMessage implements IMessage {
 
 
 	public OurChatMessage(String from, String room, String content) {
-		this.from = from;
+		this.who = from;
 		this.room = room;
 		this.content = content;
 	}
@@ -38,7 +38,7 @@ public class OurChatMessage implements IMessage {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((content == null) ? 0 : content.hashCode());
-		result = prime * result + ((from == null) ? 0 : from.hashCode());
+		result = prime * result + ((who == null) ? 0 : who.hashCode());
 		result = prime * result + ((room == null) ? 0 : room.hashCode());
 		return result;
 	}
@@ -57,10 +57,10 @@ public class OurChatMessage implements IMessage {
 				return false;
 		} else if (!content.equals(other.content))
 			return false;
-		if (from == null) {
-			if (other.from != null)
+		if (who == null) {
+			if (other.who != null)
 				return false;
-		} else if (!from.equals(other.from))
+		} else if (!who.equals(other.who))
 			return false;
 		if (room == null) {
 			if (other.room != null)

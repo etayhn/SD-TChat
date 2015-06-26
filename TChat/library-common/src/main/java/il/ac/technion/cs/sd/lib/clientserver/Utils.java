@@ -13,7 +13,7 @@ import com.thoughtworks.xstream.XStream;
 /**
  * Common utilities.
  */
-class Utils {
+public class Utils {
 	
 	final static String ENCODING = "UTF-8";
 	
@@ -97,6 +97,7 @@ class Utils {
 		return str.substring(0, 15);
 	}
 	
+	@SuppressWarnings("unused")
 	private static FileWriter logWriter = initLogWriter();
 	private static FileWriter initLogWriter()  {
 		try {

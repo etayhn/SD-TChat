@@ -1,7 +1,5 @@
 package il.ac.technion.cs.sd.app.chat;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -22,7 +20,7 @@ public class ClientData {
 
 	public ClientData() {
 		rooms = new ConcurrentHashMap<>();
-		isOnline = false;
+		isOnline = true;
 	}
 
 	/**

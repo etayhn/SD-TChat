@@ -53,19 +53,19 @@ public class Client implements IMessageHandler {
 	 * A blocking queue we use to wait for a response from the server when it
 	 * needs to send us a response on a <i>myOnlineRooms</i> query
 	 */
-	private BlockingQueue<MyOnlineRoomsReply> myOnlineRooms;
+	private BlockingQueue<MyOnlineRoomsReply> myOnlineRoomsQueue;
 	
 	/**
 	 * A blocking queue we use to wait for a response from the server when it
 	 * needs to send us a response on an <i>allRooms</i> query
 	 */
-	private BlockingQueue<AllRoomsReply> allRooms;
+	private BlockingQueue<AllRoomsReply> allRoomsQueue;
 
 	/**
 	 * A blocking queue we use to wait for a response from the server when it
 	 * needs to send us a response on an <i>clientsInRoom</i> query
 	 */
-	private BlockingQueue<ClientsInRoomReply> clientsInRoom;
+	private BlockingQueue<ClientsInRoomReply> clientsInRoomQueue;
 
 
 	/**
@@ -73,28 +73,28 @@ public class Client implements IMessageHandler {
 	 * retrieves all of the unread messages that the client got when he was not
 	 * logged in.
 	 * 
-	 * @param who
+	 * @param myAddress
 	 *            the client's address
 	 * @param serverAddress
 	 *            the server's address
-	 * @param chatMessageConsumer
+	 * @param messageConsumer
 	 *            The consumer of chat messages (See
 	 *            {@link ClientChatApplication#sendMessage(String, String)})
 	 * @param announcementConsumer
 	 *            The consumer of room announcements (See
 	 *            {@link RoomAnnouncement.Announcement})
 	 */
-	public Client(String username, String serverAddress,
+	public Client(String myAddress, String serverAddress,
 			Consumer<ChatMessage> messageConsumer,
 			Consumer<RoomAnnouncement> announcementConsumer) {
-		this.myAddress = username;
+		this.myAddress = myAddress;
 		this.serverAddress = serverAddress;
 		this.messageConsumer = messageConsumer;
 		this.announcementConsumer = announcementConsumer;
 
-		this.clientsInRoom = new LinkedBlockingDeque<>();
-		this.allRooms = new LinkedBlockingDeque<>();
-		this.myOnlineRooms = new LinkedBlockingDeque<>();
+		this.clientsInRoomQueue = new LinkedBlockingDeque<>();
+		this.allRoomsQueue = new LinkedBlockingDeque<>();
+		this.myOnlineRoomsQueue = new LinkedBlockingDeque<>();
 		this.myRooms = new ConcurrentHashMap<String,String>();
 
 		communicator = new il.ac.technion.cs.sd.lib.clientserver.Client(myAddress);
@@ -107,6 +107,8 @@ public class Client implements IMessageHandler {
 					}
 
 				});
+
+		send(new LoginRequestMessage(myAddress));
 	}
 
 	/**
@@ -133,7 +135,7 @@ public class Client implements IMessageHandler {
 
 	@Override
 	public void handle(OurChatMessage message) {
-		messageConsumer.accept(new ChatMessage(message.from, message.room, message.content));
+		messageConsumer.accept(new ChatMessage(message.who, message.room, message.content));
 	}
 
 	@Override
@@ -144,7 +146,7 @@ public class Client implements IMessageHandler {
 	@Override
 	public void handle(MyOnlineRoomsReply message) {
 		try {
-			myOnlineRooms.put(message);
+			myOnlineRoomsQueue.put(message);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -153,7 +155,7 @@ public class Client implements IMessageHandler {
 	@Override
 	public void handle(AllRoomsReply message) {
 		try {
-			allRooms.put(message);
+			allRoomsQueue.put(message);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -162,7 +164,7 @@ public class Client implements IMessageHandler {
 	@Override
 	public void handle(ClientsInRoomReply message) {
 		try {
-			clientsInRoom.put(message);
+			clientsInRoomQueue.put(message);
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
@@ -182,7 +184,7 @@ public class Client implements IMessageHandler {
 		// waiting for a response
 		while (true) {
 			try {
-				return myOnlineRooms.take().myRooms;
+				return myOnlineRoomsQueue.take().myRooms;
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -198,7 +200,7 @@ public class Client implements IMessageHandler {
 		// waiting for a response
 		while (true) {
 			try {
-				return allRooms.take().allRooms;
+				return allRoomsQueue.take().allRooms;
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
@@ -213,13 +215,13 @@ public class Client implements IMessageHandler {
 	 * @throws NoSuchRoomException If the room doesn't exist, or no clients are currently in it (i.e., are logged out)
 	 */
 	public List<String> getClientsInRoom(String room) throws NoSuchRoomException{
-		send(new MyOnlineRoomsRequest(myAddress));
+		send(new ClientsInRoomRequest(myAddress,room));
 
 		// waiting for a response
 		while (true) {
 			try {
-				List<String> clients = clientsInRoom.take().clientsInRoom;
-				if(clientsInRoom.size() == 0){
+				List<String> clients = clientsInRoomQueue.take().clientsInRoom;
+				if(clients.size() == 0){
 					throw new NoSuchRoomException();
 				}
 				return clients;

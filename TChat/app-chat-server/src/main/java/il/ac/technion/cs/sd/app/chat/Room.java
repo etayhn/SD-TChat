@@ -47,8 +47,12 @@ public class Room {
 		return new ArrayList<>(onlineClientsInRoom.keySet());
 	}
 	
+	public boolean hasLoggedInUsers(){
+		return onlineClientsInRoom.size() != 0;
+	}
+	
 	public boolean isEmpty(){
-		return onlineClientsInRoom.size() == 0;
+		return clientsInRoom.size() == 0;
 	}
 	
 }

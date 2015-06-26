@@ -148,6 +148,10 @@ public class Server {
 	 */
 	public void saveObjectToFile(String filename, Object data)
 	{
+		File allServersDir = getPesistentDirOfAllServers();
+		if(!allServersDir.exists()){
+			allServersDir.mkdir();
+		}
 		File dir = getServerPersistentDir();
 		if(!dir.exists()){
 			dir.mkdir();
@@ -155,7 +159,7 @@ public class Server {
 		try {
 			Utils.writeToFile(data, getServerPersistentDir().getAbsolutePath() + "/" +filename);
 		} catch (IOException e) {			
-			throw new RuntimeException("Failed to write file");
+			throw new RuntimeException("Failed to write file: " + e.getMessage());
 		}
 	}
 	 

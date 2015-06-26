@@ -14,7 +14,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 
 /**
  * This class represents a server in our client-server architecture. The server
@@ -25,11 +24,11 @@ public class Server implements IMessageHandler {
 	/**
 	 * Stores all of the data about the clients in a clientName->clientData map
 	 */
-	private final Map<String, ClientData> clients;
+	private Map<String, ClientData> clients;
 	
-	private final Map<String, Room> allRooms;
+	private Map<String, Room> allRooms;
 	
-	private final Map<String, Room> onlineRooms;
+	private Map<String, Room> onlineRooms;
 
 
 	/**
@@ -51,7 +50,6 @@ public class Server implements IMessageHandler {
 		onlineRooms = new ConcurrentHashMap<String, Room>();
 		allRooms = new ConcurrentHashMap<String, Room>();
 
-		start();
 	}
 
 	/**
@@ -71,6 +69,15 @@ public class Server implements IMessageHandler {
 			}
 			
 		});
+		
+		// load data if possible.
+		Optional<Object> data = communicator.readObjectFromFile(myAddress);
+		if(data.isPresent()){
+			ServerData serverData = (ServerData) data.get();
+			clients = serverData.clients;
+			onlineRooms = serverData.onlineRooms;
+			allRooms = serverData.allRooms;
+		}
 		
 	}
 
@@ -149,12 +156,16 @@ public class Server implements IMessageHandler {
 		if(room == null){
 			room = new Room(message.room);
 			allRooms.put(message.room, room);
+		}
+		clientData.addRoom(message.room, room);
+		room.addClient(message.who, clientData);
+		
+		if(room.hasLoggedInUsers()){
 			onlineRooms.put(message.room, room);
 		}
 		
-		clientData.addRoom(message.room, room);
-		room.addClient(message.who, clientData);
-		sendToRoom(message.who, message.room, new OurRoomAnnouncement(message.who, message.room, Announcement.JOIN));
+		sendToRoom(message.who, message.room, 
+				new OurRoomAnnouncement(message.who, message.room, Announcement.JOIN));
 	}
 	
 	@Override
@@ -163,23 +174,72 @@ public class Server implements IMessageHandler {
 		Room room = allRooms.get(message.room);
 		
 		room.removeClient(message.who);
-		if(room.isEmpty()){
+		if(!room.hasLoggedInUsers()){
 			onlineRooms.remove(message.room);
 		}
 		clientData.removeRoom(message.room);
-		sendToRoom(message.who, message.room, new OurRoomAnnouncement(message.who, message.room, Announcement.LEAVE));
+		
+		// no one to send announcement to.
+		if(room.isEmpty()){
+			allRooms.remove(message.room);
+		
+		// send announcement.
+		}else{
+			sendToRoom(message.who, message.room, 
+					new OurRoomAnnouncement(message.who, message.room, Announcement.LEAVE));
+		}
 	}
-	
 	
 	@Override
 	public void handle(LogoutRequestMessage message) {
 		ClientData clientData = clients.get(message.who);
-		clients.remove(message.who);
+		clientData.setOnline(false);
 		
 		for (Room room : clientData.getRooms().values()){
 			room.onClientLogout(message.who);
-			sendToRoom(message.who, room.name, new OurRoomAnnouncement(message.who, room.name, Announcement.DISCONNECT));
+			if(!room.hasLoggedInUsers()){
+				onlineRooms.remove(room.name);
+			}
+			sendToRoom(message.who, room.name, 
+					new OurRoomAnnouncement(message.who, room.name, Announcement.DISCONNECT));
 		}
 	}
+	
+	@Override
+	public void handle(LoginRequestMessage message) {
+		ClientData clientData = clients.get(message.who);
+		if(clientData == null){
+			clientData = new ClientData();
+			clients.put(message.who, clientData);
+		}
+		clientData.setOnline(true);
+		
+		for (Room room : clientData.getRooms().values()){
+			room.onClientLogin(message.who, clientData);
+			if(room.hasLoggedInUsers()){
+				onlineRooms.put(room.name, room);
+			}
+			sendToRoom(message.who, room.name, 
+					new OurRoomAnnouncement(message.who, room.name, Announcement.JOIN));
+		}
+	}
+	
+	@Override
+	public void handle(OurChatMessage message) {
+
+		sendToRoom(message.who, message.room, message);
+	}
+
+	public void saveData() {
+
+		ServerData data = new ServerData(clients, allRooms, onlineRooms);
+		communicator.saveObjectToFile(myAddress, data);
+	}
+
+	public void removeData() {
+		communicator.clearPersistentData();
+		
+	}
+
 
 }
