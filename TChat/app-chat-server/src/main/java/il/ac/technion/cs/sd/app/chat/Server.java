@@ -25,11 +25,10 @@ public class Server implements IMessageHandler {
 	 * Stores all of the data about the clients in a clientName->clientData map
 	 */
 	private Map<String, ClientData> clients;
-	
-	private Map<String, Room> allRooms;
-	
-	private Map<String, Room> onlineRooms;
 
+	private Map<String, Room> allRooms;
+
+	private Map<String, Room> onlineRooms;
 
 	/**
 	 * The ServerCommunicator with which the server speaks with the clients
@@ -60,25 +59,26 @@ public class Server implements IMessageHandler {
 	}
 
 	public void start() {
-		communicator = new il.ac.technion.cs.sd.lib.clientserver.Server(myAddress);
-		communicator.start(new BiConsumer<Object,String>() {
-			
+		communicator = new il.ac.technion.cs.sd.lib.clientserver.Server(
+				myAddress);
+		communicator.start(new BiConsumer<Object, String>() {
+
 			@Override
 			public void accept(Object o, String from) {
 				((IMessage) o).handle(Server.this);
 			}
-			
+
 		});
-		
+
 		// load data if possible.
 		Optional<Object> data = communicator.readObjectFromFile(myAddress);
-		if(data.isPresent()){
+		if (data.isPresent()) {
 			ServerData serverData = (ServerData) data.get();
 			clients = serverData.clients;
 			onlineRooms = serverData.onlineRooms;
 			allRooms = serverData.allRooms;
 		}
-		
+
 	}
 
 	public void sendToRoom(String from, String room, IMessage message) {
@@ -88,7 +88,7 @@ public class Server implements IMessageHandler {
 			}
 		}
 	}
-	
+
 	/**
 	 * Sends a message to a client.
 	 * 
@@ -108,18 +108,18 @@ public class Server implements IMessageHandler {
 
 		if (clientData.isOnline()) {
 			new Thread(new Runnable() {
-				
+
 				@Override
 				public void run() {
 					communicator.send(to, message, false);
-					
+
 				}
 			}).start();
-		} 
+		}
 	}
 
 	// ***************************************************************
-	
+
 	@Override
 	public void handle(AllRoomsRequest message) {
 
@@ -127,23 +127,24 @@ public class Server implements IMessageHandler {
 		rooms.addAll(onlineRooms.keySet());
 		send(message.who, new AllRoomsReply(rooms));
 	}
-	
+
 	@Override
 	public void handle(MyOnlineRoomsRequest message) {
-		List<String> rooms = new ArrayList<>(clients.get(message.who).getRooms().keySet());
+		List<String> rooms = new ArrayList<>(clients.get(message.who)
+				.getRooms().keySet());
 
 		send(message.who, new MyOnlineRoomsReply(rooms));
 	}
 
 	@Override
 	public void handle(ClientsInRoomRequest message) {
-		
+
 		Room room = onlineRooms.get(message.room);
 
 		List<String> clients;
-		if(room == null){
+		if (room == null) {
 			clients = new ArrayList<>();
-		}else{
+		} else {
 			clients = room.getOnlineClients();
 		}
 		send(message.who, new ClientsInRoomReply(message.room, clients));
@@ -152,81 +153,106 @@ public class Server implements IMessageHandler {
 	@Override
 	public void handle(JoinRoomRequest message) {
 		ClientData clientData = clients.get(message.who);
+
+		if (clientData.getRooms().containsKey(message.room)) {
+			send(message.who, new JoinRoomReply(
+					ErrorCode.AlreadyInRoomException));
+			return;
+		}
+
 		Room room = allRooms.get(message.room);
-		if(room == null){
+		if (room == null) {
 			room = new Room(message.room);
 			allRooms.put(message.room, room);
 		}
 		clientData.addRoom(message.room, room);
 		room.addClient(message.who, clientData);
-		
-		if(room.hasLoggedInUsers()){
+
+		if (room.hasLoggedInUsers()) {
 			onlineRooms.put(message.room, room);
 		}
-		
-		sendToRoom(message.who, message.room, 
-				new OurRoomAnnouncement(message.who, message.room, Announcement.JOIN));
+
+		send(message.who, new JoinRoomReply(ErrorCode.Success));
+		sendToRoom(message.who, message.room, new OurRoomAnnouncement(
+				message.who, message.room, Announcement.JOIN));
 	}
-	
+
 	@Override
 	public void handle(LeaveRoomRequest message) {
 		ClientData clientData = clients.get(message.who);
+
+		if (!clientData.getRooms().containsKey(message.room)) {
+			send(message.who, new LeaveRoomReply(ErrorCode.NotInRoomException));
+			return;
+		}
+
 		Room room = allRooms.get(message.room);
-		
+
 		room.removeClient(message.who);
-		if(!room.hasLoggedInUsers()){
+		if (!room.hasLoggedInUsers()) {
 			onlineRooms.remove(message.room);
 		}
 		clientData.removeRoom(message.room);
-		
+
+		send(message.who, new LeaveRoomReply(ErrorCode.Success));
+
 		// no one to send announcement to.
-		if(room.isEmpty()){
+		if (room.isEmpty()) {
 			allRooms.remove(message.room);
-		
-		// send announcement.
-		}else{
-			sendToRoom(message.who, message.room, 
-					new OurRoomAnnouncement(message.who, message.room, Announcement.LEAVE));
+
+			// send announcement.
+		} else {
+			sendToRoom(message.who, message.room, new OurRoomAnnouncement(
+					message.who, message.room, Announcement.LEAVE));
 		}
 	}
-	
+
 	@Override
 	public void handle(LogoutRequestMessage message) {
 		ClientData clientData = clients.get(message.who);
 		clientData.setOnline(false);
-		
-		for (Room room : clientData.getRooms().values()){
+
+		for (Room room : clientData.getRooms().values()) {
 			room.onClientLogout(message.who);
-			if(!room.hasLoggedInUsers()){
+			if (!room.hasLoggedInUsers()) {
 				onlineRooms.remove(room.name);
 			}
-			sendToRoom(message.who, room.name, 
-					new OurRoomAnnouncement(message.who, room.name, Announcement.DISCONNECT));
+			sendToRoom(message.who, room.name, new OurRoomAnnouncement(
+					message.who, room.name, Announcement.DISCONNECT));
 		}
 	}
-	
+
 	@Override
 	public void handle(LoginRequestMessage message) {
 		ClientData clientData = clients.get(message.who);
-		if(clientData == null){
+		if (clientData == null) {
 			clientData = new ClientData();
 			clients.put(message.who, clientData);
 		}
 		clientData.setOnline(true);
-		
-		for (Room room : clientData.getRooms().values()){
+
+		for (Room room : clientData.getRooms().values()) {
 			room.onClientLogin(message.who, clientData);
-			if(room.hasLoggedInUsers()){
+			if (room.hasLoggedInUsers()) {
 				onlineRooms.put(room.name, room);
 			}
-			sendToRoom(message.who, room.name, 
-					new OurRoomAnnouncement(message.who, room.name, Announcement.JOIN));
+			sendToRoom(message.who, room.name, new OurRoomAnnouncement(
+					message.who, room.name, Announcement.JOIN));
 		}
 	}
-	
+
 	@Override
 	public void handle(OurChatMessage message) {
+		// if the client is not in the room
+		ClientData clientData = clients.get(message.who);
+		if (!clientData.getRooms().containsKey(message.room)) {
+			send(message.who, new OurChatMessageReply(
+					ErrorCode.NotInRoomException));
+			return;
+		}
 
+		// otherwise, the client can send the message to the room
+		send(message.who, new OurChatMessageReply(ErrorCode.Success));
 		sendToRoom(message.who, message.room, message);
 	}
 
@@ -238,8 +264,7 @@ public class Server implements IMessageHandler {
 
 	public void removeData() {
 		communicator.clearPersistentData();
-		
-	}
 
+	}
 
 }
