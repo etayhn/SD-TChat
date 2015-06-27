@@ -5,11 +5,9 @@ import il.ac.technion.cs.sd.app.chat.RoomAnnouncement.Announcement;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
-import java.util.Random;
 import java.util.concurrent.*;
 
 import org.junit.*;
@@ -28,25 +26,6 @@ public class OurTChatTest {
 	// all listened to incoming messages will be written here
 	private Map<String, BlockingQueue<RoomAnnouncement>> announcements = new HashMap<>();
 	private Map<String, BlockingQueue<ChatMessage>> messages = new HashMap<>();
-
-	private static final int DEFAULT_STRING_LENGTH = 10;
-	private final Random random = new Random();
-
-	private static String generateRandomString(int length) {
-		if (length <= 0)
-			return "";
-		Random randomGenerator = new Random();
-		char[] buffer = new char[length];
-		int numLettersInEnglish = 26;
-		for (int i = 0; i < buffer.length; i++) {
-			buffer[i] = (char) (randomGenerator.nextInt(numLettersInEnglish) + 'a');
-		}
-		return new String(buffer);
-	}
-
-	private static String generateRandomString() {
-		return generateRandomString(DEFAULT_STRING_LENGTH);
-	}
 
 	private ClientChatApplication loginUser(String name) {
 		ClientChatApplication $ = new ClientChatApplication(

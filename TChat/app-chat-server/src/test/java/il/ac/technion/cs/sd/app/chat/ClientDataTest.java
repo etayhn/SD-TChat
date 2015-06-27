@@ -2,12 +2,10 @@ package il.ac.technion.cs.sd.app.chat;
 
 import static org.junit.Assert.*;
 
-import java.util.List;
 import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 public class ClientDataTest {
 
